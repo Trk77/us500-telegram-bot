@@ -1,24 +1,31 @@
-name: Run Bot
+main.py
 
-on:
-  schedule:
-    - cron: "*/15 * * * *"  # كل 15 دقيقة
-  workflow_dispatch:        # لتشغيل البوت يدويًا
+import logging import yfinance as yf from telegram import Bot from telegram.error import TelegramError import datetime
 
-jobs:
-  run-bot:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+إعدادات البوت
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
+BOT_TOKEN = "ضع_توكن_البوت_هنا" CHAT_ID = "ضع_معرف_الدردشة_هنا"
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+bot = Bot(token=BOT_TOKEN) logging.basicConfig(level=logging.INFO)
 
-      - name: Run bot
-        run: python main.py
+دالة التحليل البسيط
+
+def analyze_us500(): try: ticker = yf.Ticker("^GSPC")  # US500 / SPX hist = ticker.history(period="1d", interval="5m")
+
+if hist.empty:
+        return "⚠️ لا توجد بيانات حالياً."
+
+    latest = hist.iloc[-1]
+    price = latest["Close"]
+
+    message = f"📊 US500 Analysis\n\nالسعر الحالي: {price:.2f} \nالتاريخ: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    return message
+
+except Exception as e:
+    logging.error(f"خطأ في التحليل: {e}")
+    return "❌ حدث خطأ أثناء التحليل."
+
+إرسال الرسالة
+
+try: analysis = analyze_us500() bot.send_message(chat_id=CHAT_ID, text=analysis) logging.info("تم إرسال التحليل بنجاح.") except TelegramError as te: logging.error(f"خطأ في الإرسال إلى تيليجرام: {te}") except Exception as e: logging.error(f"خطأ عام: {e}")
+
